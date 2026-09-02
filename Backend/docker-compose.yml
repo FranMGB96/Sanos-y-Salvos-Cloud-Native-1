@@ -57,6 +57,24 @@ services:
       timeout: 5s
       retries: 5
 
+  category-db:
+    image: mysql:8.0
+    container_name: category-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: category_db
+    ports:
+      - "3310:3306"
+    networks:
+      - petshop-net
+    volumes:
+      - category-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ─── INFRAESTRUCTURA ──────────────────────────────────────────
   eureka-server:
     build:
@@ -169,6 +187,25 @@ services:
     networks:
       - petshop-net
 
+  category-service:
+    build:
+      context: .
+      dockerfile: businessdomain/category-service/Dockerfile
+    container_name: category-service
+    ports:
+      - "8085:8085"
+    environment:
+      DB_HOST: category-db
+      EUREKA_URI: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+    depends_on:
+      category-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - petshop-net
+
   bff-service:
     build:
       context: .
@@ -210,11 +247,11 @@ volumes:
   user-db-data:
   pet-db-data:
   report-db-data:
+  category-db-data:
 
 
 #docker compose up -d user-db pet-db report-db category-db
 
-#docker compose up -d user-db pet-db report-db category-db
 #docker compose up -d user-db pet-db report-db category-db eureka-server config-server
 #docker compose up --build
 
