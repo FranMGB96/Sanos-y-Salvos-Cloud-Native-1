@@ -212,9 +212,10 @@ volumes:
   report-db-data:
 
 
-#docker compose up -d user-db pet-db report-db
+#docker compose up -d user-db pet-db report-db category-db
 
-#docker compose up -d user-db pet-db report-db eureka-server config-server
+#docker compose up -d user-db pet-db report-db category-db
+#docker compose up -d user-db pet-db report-db category-db eureka-server config-server
 #docker compose up --build
 
 
@@ -223,6 +224,7 @@ volumes:
 #3 UserServiceApplication
 #4 PetServiceApplication
 #5 ReportServiceApplication
-#6 ApiGatewayApplication
-#7 BffServiceApplication
-#8 SpringBootAdminApplication
+#6 CategoryServiceApplication
+#7 ApiGatewayApplication
+#8 BffServiceApplication
+#9 SpringBootAdminApplication
