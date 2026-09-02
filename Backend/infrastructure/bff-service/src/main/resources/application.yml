@@ -1,0 +1,64 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: bff-service
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: false
+    hostname: localhost
+
+# ✅ Configuración de Circuit Breaker con Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+
+      bff-dashboard:
+        # Porcentaje de fallos para abrir el circuito (50% = si la mitad falla, se abre)
+        failureRateThreshold: 50
+        # Nº mínimo de llamadas antes de evaluar el circuito
+        minimumNumberOfCalls: 5
+        # Tiempo en estado OPEN antes de pasar a HALF-OPEN (en segundos)
+        waitDurationInOpenState: 10s
+        # Nº de llamadas permitidas en estado HALF-OPEN para ver si el servicio se recuperó
+        permittedNumberOfCallsInHalfOpenState: 3
+        # Tipo de ventana: COUNT_BASED (por nº de llamadas) o TIME_BASED (por tiempo)
+        slidingWindowType: COUNT_BASED
+        # Tamaño de la ventana de evaluación
+        slidingWindowSize: 10
+
+      bff-usuario:
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+
+      bff-reportes:
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+
+# Exponer endpoints de actuator para ver el estado del circuit breaker
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true

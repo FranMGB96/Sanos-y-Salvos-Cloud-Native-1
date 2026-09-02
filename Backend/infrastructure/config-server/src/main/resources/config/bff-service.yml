@@ -1,0 +1,10 @@
+services:
+  user-url: ${USER_SERVICE_URL:http://user-service:8081}
+  pet-url: ${PET_SERVICE_URL:http://pet-service:8082}
+  report-url: ${REPORT_SERVICE_URL:http://report-service:8083}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

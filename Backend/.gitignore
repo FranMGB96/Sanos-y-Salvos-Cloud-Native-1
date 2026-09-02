@@ -1,0 +1,32 @@
+# Maven
+target/
+*.jar
+*.war
+*.class
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spring Boot
+application-local.yml
+application-local.properties
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# Docker
+.env

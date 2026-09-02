@@ -1,0 +1,119 @@
+═══════════════════════════════════════════════════════════════
+   SANOS Y SALVOS — REPOSITORIOS DEL PROYECTO
+   DSY1106 Desarrollo Fullstack III — DuocUC
+   Francisco García | Lucas Ribeiro
+═══════════════════════════════════════════════════════════════
+
+REPOSITORIO PRINCIPAL
+─────────────────────
+URL:         https://github.com/TU_USUARIO/sanos-y-salvos
+Descripción: Repositorio principal del proyecto. Contiene todos los
+             microservicios organizados en estructura Maven Multi-Módulo,
+             el frontend Angular, Docker Compose y documentación completa.
+
+ESTRUCTURA DEL REPOSITORIO:
+  sanos-y-salvos/
+  ├── businessdomain/
+  │   ├── user-service/      Gestión de usuarios y autenticación JWT
+  │   ├── pet-service/       Gestión de mascotas
+  │   └── report-service/    Gestión de reportes perdidos/encontrados
+  ├── infrastructure/
+  │   ├── eureka-server/     Service Discovery
+  │   ├── config-server/     Configuración centralizada
+  │   ├── api-gateway/       Punto de entrada + filtro JWT
+  │   ├── bff-service/       Backend For Frontend
+  │   └── springboot-admin/  Monitoreo de microservicios
+  ├── frontend/              Angular 17 SPA
+  └── docker-compose.yml     Orquestación completa
+
+
+COMPONENTES INDIVIDUALES
+─────────────────────────
+
+1. FRONTEND ANGULAR
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/frontend
+   Tecnología:  Angular 17 + TypeScript + Leaflet.js
+   Puerto:      4200
+   Descripción: Interfaz de usuario SPA con login, registro, dashboard de
+                estadísticas, gestión de mascotas y reportes con mapa
+                interactivo usando OpenStreetMap.
+
+2. USER SERVICE
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/businessdomain/user-service
+   Tecnología:  Spring Boot 3.2.5 + Spring Security + JWT
+   Puerto:      8081
+   Descripción: Microservicio de gestión de usuarios. Provee endpoints de
+                registro, login y CRUD de usuarios. Genera y valida tokens
+                JWT. Roles: OWNER, CITIZEN, ORG, ADMIN.
+
+3. PET SERVICE
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/businessdomain/pet-service
+   Tecnología:  Spring Boot 3.2.5 + Spring Data JPA + MySQL
+   Puerto:      8082
+   Descripción: Microservicio de gestión de mascotas. Permite registrar,
+                actualizar y buscar mascotas por dueño, especie o estado.
+                Implementa soft delete con campo active.
+
+4. REPORT SERVICE
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/businessdomain/report-service
+   Tecnología:  Spring Boot 3.2.5 + Spring Data JPA + MySQL
+   Puerto:      8083
+   Descripción: Microservicio de gestión de reportes de mascotas perdidas
+                y encontradas. Almacena coordenadas geográficas y gestiona
+                estados ACTIVO, RESUELTO y CERRADO.
+
+5. BFF SERVICE (Backend For Frontend)
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/infrastructure/bff-service
+   Tecnología:  Spring Boot 3.2.5 + RestTemplate + Load Balancer
+   Puerto:      8084
+   Descripción: Orquesta llamadas a user-service, pet-service y
+                report-service para proveer vistas compuestas optimizadas
+                para el frontend. Incluye endpoint de dashboard.
+
+6. API GATEWAY
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/infrastructure/api-gateway
+   Tecnología:  Spring Cloud Gateway + JWT Filter
+   Puerto:      8080
+   Descripción: Punto de entrada único del sistema. Valida tokens JWT,
+                enruta peticiones a los microservicios y aplica CORS.
+
+7. EUREKA SERVER
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/infrastructure/eureka-server
+   Tecnología:  Netflix Eureka Server
+   Puerto:      8761
+   Descripción: Servidor de descubrimiento de servicios. Todos los
+                microservicios se registran aquí al iniciar.
+
+8. CONFIG SERVER
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/infrastructure/config-server
+   Tecnología:  Spring Cloud Config Server
+   Puerto:      8888
+   Descripción: Servidor de configuración centralizada. Provee los
+                application.yml de todos los microservicios desde un
+                único lugar.
+
+9. SPRING BOOT ADMIN
+   URL:         https://github.com/TU_USUARIO/sanos-y-salvos/tree/main/infrastructure/springboot-admin
+   Tecnología:  Spring Boot Admin Server 3.3.8
+   Puerto:      9090
+   Descripción: Panel de monitoreo visual de todos los microservicios.
+                Muestra estado, métricas, logs y endpoints en tiempo real.
+
+
+INSTRUCCIONES RÁPIDAS
+──────────────────────
+Para ejecutar el sistema completo:
+
+  git clone https://github.com/TU_USUARIO/sanos-y-salvos.git
+  cd sanos-y-salvos
+  docker compose up --build
+
+Acceso tras levantar:
+  Frontend:        http://localhost:4200
+  API Gateway:     http://localhost:8080
+  Eureka:          http://localhost:8761
+  Spring Boot Admin: http://localhost:9090  (admin / admin123)
+
+═══════════════════════════════════════════════════════════════
+NOTA: Reemplazar TU_USUARIO con el nombre de usuario de GitHub
+═══════════════════════════════════════════════════════════════

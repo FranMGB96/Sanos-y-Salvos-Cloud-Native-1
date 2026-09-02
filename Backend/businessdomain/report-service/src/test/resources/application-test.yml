@@ -1,0 +1,25 @@
+# Configuración exclusiva para tests de integración
+# Spring activa este archivo automáticamente con @ActiveProfiles("test")
+spring:
+  datasource:
+    url: jdbc:h2:mem:reportdb_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  cloud:
+    config:
+      enabled: false
+  config:
+    import: ""
+  autoconfigure:
+    exclude:
+      - org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration
+
+eureka:
+  client:
+    enabled: false

@@ -1,0 +1,228 @@
+version: '3.8'
+
+services:
+
+  # ─── BASES DE DATOS ───────────────────────────────────────────
+  user-db:
+    image: mysql:8.0
+    container_name: user-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: user_db
+    ports:
+      - "3307:3306"
+    networks:
+      - petshop-net
+    volumes:
+      - user-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pet-db:
+    image: mysql:8.0
+    container_name: pet-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pet_db
+    ports:
+      - "3308:3306"
+    networks:
+      - petshop-net
+    volumes:
+      - pet-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  report-db:
+    image: mysql:8.0
+    container_name: report-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: report_db
+    ports:
+      - "3309:3306"
+    networks:
+      - petshop-net
+    volumes:
+      - report-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── INFRAESTRUCTURA ──────────────────────────────────────────
+  eureka-server:
+    build:
+      context: .
+      dockerfile: infrastructure/eureka-server/Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - petshop-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  config-server:
+    build:
+      context: .
+      dockerfile: infrastructure/config-server/Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - petshop-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8888/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infrastructure/api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - petshop-net
+
+  # ─── MICROSERVICIOS DE NEGOCIO ────────────────────────────────
+  user-service:
+    build:
+      context: .
+      dockerfile: businessdomain/user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: user-db
+      EUREKA_URI: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+    depends_on:
+      user-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - petshop-net
+
+  pet-service:
+    build:
+      context: .
+      dockerfile: businessdomain/pet-service/Dockerfile
+    container_name: pet-service
+    ports:
+      - "8082:8082"
+    environment:
+      DB_HOST: pet-db
+      EUREKA_URI: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+    depends_on:
+      pet-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - petshop-net
+
+  report-service:
+    build:
+      context: .
+      dockerfile: businessdomain/report-service/Dockerfile
+    container_name: report-service
+    ports:
+      - "8083:8083"
+    environment:
+      DB_HOST: report-db
+      EUREKA_URI: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+    depends_on:
+      report-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - petshop-net
+
+  bff-service:
+    build:
+      context: .
+      dockerfile: infrastructure/bff-service/Dockerfile
+    container_name: bff-service
+    ports:
+      - "8084:8084"
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+      USER_SERVICE_URL: http://user-service:8081
+      PET_SERVICE_URL: http://pet-service:8082
+      REPORT_SERVICE_URL: http://report-service:8083
+    depends_on:
+      - user-service
+      - pet-service
+      - report-service
+    networks:
+      - petshop-net
+
+  # ─── FRONTEND ─────────────────────────────────────────────────
+#  frontend:
+#    build:
+#      context: ./frontend
+#      dockerfile: Dockerfile
+#    container_name: frontend
+#    ports:
+#      - "4200:80"
+#    depends_on:
+#      - api-gateway
+#    networks:
+#      - petshop-net
+
+networks:
+  petshop-net:
+    driver: bridge
+
+volumes:
+  user-db-data:
+  pet-db-data:
+  report-db-data:
+
+
+#docker compose up -d user-db pet-db report-db
+
+#docker compose up -d user-db pet-db report-db eureka-server config-server
+#docker compose up --build
+
+
+#1 EurekaServerApplication
+#2 ConfigServerApplication
+#3 UserServiceApplication
+#4 PetServiceApplication
+#5 ReportServiceApplication
+#6 ApiGatewayApplication
+#7 BffServiceApplication
+#8 SpringBootAdminApplication
