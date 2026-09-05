@@ -51,7 +51,10 @@ spring:
             - Path=/api/bff/**
           filters:
             - StripPrefix=1
-            - AuthenticationFilter
+          # Sin AuthenticationFilter: el BFF ahora valida el JWT de Microsoft
+          # Entra ID directamente con Spring Security (ver SecurityConfig del
+          # bff-service). Ese JWT no es compatible con el AuthenticationFilter
+          # interno (que valida el token HS256 propio emitido por user-service).
 
       globalcors:
         cors-configurations:

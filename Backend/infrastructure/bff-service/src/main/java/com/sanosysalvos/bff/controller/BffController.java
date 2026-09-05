@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,9 @@ public class BffController {
         return ResponseEntity.ok(bffService.getDashboard());
     }
 
+    // Requiere que el JWT de Entra ID traiga el scope Pets.Access
+    // (el frontend lo solicita explícitamente vía MSAL al hacer login).
+    @PreAuthorize("hasAuthority('SCOPE_Pets.Access')")
     @GetMapping("/usuarios/{userId}/mascotas")
     public ResponseEntity<UsuarioConMascotasDto> getUsuarioConMascotas(
             @PathVariable Long userId) {

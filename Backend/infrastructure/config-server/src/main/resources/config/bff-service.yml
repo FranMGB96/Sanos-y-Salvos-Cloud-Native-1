@@ -2,6 +2,20 @@ services:
   user-url: ${USER_SERVICE_URL:http://user-service:8081}
   pet-url: ${PET_SERVICE_URL:http://pet-service:8082}
   report-url: ${REPORT_SERVICE_URL:http://report-service:8083}
+  category-url: ${CATEGORY_SERVICE_URL:http://category-service:8085}
+
+# ── Microsoft Entra ID (IDaaS) ────────────────────────────
+# Valida los tokens JWT que llegan desde el frontend (MSAL).
+spring:
+  cloud:
+    azure:
+      active-directory:
+        enabled: true
+        profile:
+          tenant-id: adae00b7-b38a-40cd-ae32-ec83026863e5
+        credential:
+          client-id: 5a0cc810-2146-4f12-867a-7216acad6137
+        app-id-uri: api://evaluaciondcn1.onmicrosoft.com/sanosysalvos
 
 springdoc:
   api-docs:
