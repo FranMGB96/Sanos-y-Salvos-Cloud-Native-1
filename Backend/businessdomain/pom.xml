@@ -22,5 +22,6 @@
         <module>user-service</module>
         <module>pet-service</module>
         <module>report-service</module>
+        <module>category-service</module>
     </modules>
 </project>

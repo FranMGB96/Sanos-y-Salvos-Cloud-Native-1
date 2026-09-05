@@ -92,8 +92,9 @@ interface PetConDueno extends Pet {
 
         <div class="empty-state" *ngIf="pets.length === 0">
           <span>🐾</span>
-          <p>No hay mascotas registradas</p>
-          <a routerLink="/pets/new" class="btn-primary">Registrar primera mascota</a>
+          <p *ngIf="selectedCategoria === null">No hay mascotas registradas</p>
+          <p *ngIf="selectedCategoria !== null">No hay mascotas en la categoría "{{ selectedCategoria }}"</p>
+          <a *ngIf="selectedCategoria === null" routerLink="/pets/new" class="btn-primary">Registrar primera mascota</a>
         </div>
 
       </div>
@@ -254,11 +255,24 @@ export class PetListComponent implements OnInit {
     });
   }
 
+  private readonly ESPECIES_PRINCIPALES = ['perro', 'gato', 'ave'];
+
   filterByCategoria(nombre: string | null) {
     this.selectedCategoria = nombre;
-    this.pets = nombre
-      ? this.allPets.filter(p => p.especie?.toLowerCase() === nombre.toLowerCase())
-      : this.allPets;
+
+    if (!nombre) {
+      this.pets = this.allPets;
+      return;
+    }
+
+    const esOtros = nombre.toLowerCase() === 'otros';
+
+    this.pets = this.allPets.filter(p => {
+      const especie = p.especie?.toLowerCase() ?? '';
+      return esOtros
+        ? !this.ESPECIES_PRINCIPALES.includes(especie)
+        : especie === nombre.toLowerCase();
+    });
   }
 
   getEmoji(especie: string): string {

@@ -37,6 +37,14 @@ spring:
             - StripPrefix=1
             - AuthenticationFilter
 
+        - id: category-service
+          uri: lb://category-service
+          predicates:
+            - Path=/api/categories/**
+          filters:
+            - StripPrefix=1
+            - AuthenticationFilter
+
         - id: bff-service
           uri: lb://bff-service
           predicates:

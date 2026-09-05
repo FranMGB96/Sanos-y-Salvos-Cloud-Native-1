@@ -1,5 +1,6 @@
 package com.sanosysalvos.categoryservice.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String,Object>> handleNotFound(ResourceNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String,Object>> handleDuplicate(DataIntegrityViolationException ex) {
+        return build(HttpStatus.CONFLICT, "Ya existe una categoría con ese nombre");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

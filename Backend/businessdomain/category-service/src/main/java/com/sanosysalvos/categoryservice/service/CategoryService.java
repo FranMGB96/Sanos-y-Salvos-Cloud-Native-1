@@ -25,13 +25,13 @@ public class CategoryService {
     }
 
     public CategoryDto create(CategoryDto dto) {
-        Category category = Category.builder().nombre(dto.getNombre()).build();
+        Category category = Category.builder().nombre(dto.getNombre().trim()).build();
         return toDto(categoryRepository.save(category));
     }
 
     public CategoryDto update(Long id, CategoryDto dto) {
         Category category = findOrThrow(id);
-        if (dto.getNombre() != null) category.setNombre(dto.getNombre());
+        if (dto.getNombre() != null) category.setNombre(dto.getNombre().trim());
         return toDto(categoryRepository.save(category));
     }
 
