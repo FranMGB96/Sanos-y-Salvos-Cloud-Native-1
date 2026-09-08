@@ -1,7 +1,8 @@
-[README.md](https://github.com/user-attachments/files/28027615/README.md)
-# 🐾 Sanos y Salvos
+# 🐾 Sanos y Salvos — Cloud Native I (DSY1107)
 
-Plataforma web de reporte y búsqueda de mascotas perdidas. Permite a los usuarios registrarse, registrar sus mascotas y publicar reportes geolocalizados cuando una mascota se pierde o es encontrada.
+Plataforma web de reporte y búsqueda de mascotas perdidas. Permite a los usuarios registrar sus mascotas y publicar reportes geolocalizados cuando una mascota se pierde o es encontrada.
+
+Este repositorio corresponde a la evaluación de **Desarrollo Cloud Native I**, que retoma el proyecto de un ramo anterior (Fullstack III) y lo migra hacia una arquitectura de nube real: autenticación con **Microsoft Entra ID (Azure AD)** vía **MSAL** y **OAuth 2.0 / OpenID Connect**, backend protegido como **Resource Server**, y despliegue en **AWS** (API Gateway + EC2).
 
 ---
 
@@ -9,37 +10,35 @@ Plataforma web de reporte y búsqueda de mascotas perdidas. Permite a los usuari
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | Angular 17 · TypeScript · Nginx |
+| Frontend | Angular 17 · TypeScript · MSAL (`@azure/msal-angular`) |
 | Backend | Java 21 · Spring Boot 3.2 · Spring Cloud |
-| Seguridad | JWT · Spring Security · API Gateway Filter |
-| Base de datos | MySQL 8.0 (3 instancias independientes) |
-| Infraestructura | Docker · Docker Compose |
+| Identidad (IDaaS) | Microsoft Entra ID (Azure AD) — OAuth 2.0 / OIDC |
+| Seguridad backend | Spring Security · OAuth2 Resource Server (`spring-cloud-azure-starter-active-directory`) |
+| Base de datos | MySQL 8.0 (una instancia por microservicio) |
+| Infraestructura | Docker · Docker Compose · AWS (API Gateway + EC2) |
 | Service Discovery | Netflix Eureka |
 | Configuración | Spring Cloud Config Server |
-| Monitoreo | Spring Boot Admin |
 | Documentación | Swagger / OpenAPI 3 |
 
 ---
 
 ## 🏗️ Arquitectura
 
-El proyecto sigue una arquitectura de **microservicios** con las siguientes capas:
-
 ### Infraestructura
 | Servicio | Puerto | Descripción |
 |---|---|---|
 | Eureka Server | 8761 | Service Discovery — registro de microservicios |
 | Config Server | 8888 | Configuración centralizada para todos los servicios |
-| API Gateway | 8080 | Punto de entrada único, validación JWT, enrutamiento |
-| BFF Service | 8084 | Backend for Frontend — agrega datos de múltiples servicios |
-| Spring Boot Admin | — | Monitoreo y métricas de los microservicios |
+| API Gateway | 8080 | Punto de entrada único y enrutamiento interno |
+| BFF Service | 8084 | Backend for Frontend — agrega datos y valida el JWT de Azure AD |
 
 ### Microservicios de negocio
 | Servicio | Puerto | Descripción |
 |---|---|---|
-| User Service | 8081 | Registro, login, gestión de usuarios y JWT |
+| User Service | 8081 | Gestión de usuarios |
 | Pet Service | 8082 | CRUD de mascotas con subida de fotos |
 | Report Service | 8083 | Reportes de mascotas perdidas/encontradas con geolocalización |
+| Category Service | 8085 | Catálogo de especies (Perro, Gato, Ave, Otros) para filtrar mascotas — microservicio agregado en esta evaluación |
 
 ### Bases de datos
 | Base de datos | Puerto | Servicio |
@@ -47,216 +46,140 @@ El proyecto sigue una arquitectura de **microservicios** con las siguientes capa
 | user_db | 3307 | User Service |
 | pet_db | 3308 | Pet Service |
 | report_db | 3309 | Report Service |
+| category_db | 3310 | Category Service |
 
 ---
 
-## 🔐 Seguridad
+## 🔐 Autenticación y seguridad (Azure AD)
 
-- Autenticación con **JWT** generado por el `user-service`
-- El **API Gateway** valida el token en cada request e inyecta los headers `X-User-Id` y `X-User-Role`
-- Cada usuario solo puede editar o eliminar sus propios registros
-- El rol **ADMIN** puede gestionar todos los registros sin restricción
-- El registro público siempre asigna el rol `OWNER`
+La autenticación **ya no usa un login propio con JWT interno**. El flujo real es:
 
-### Roles disponibles
-| Rol | Descripción |
+1. El frontend usa **MSAL** (flujo *Authorization Code + Redirect*) para autenticar al usuario contra el tenant de **Microsoft Entra ID**.
+2. MSAL obtiene un **Access Token** con el scope `Pets.Access`, y lo adjunta automáticamente a cada llamada a la API (`MsalInterceptor`).
+3. El **BFF** actúa como *Resource Server*: valida la firma, el `issuer`, la `audience` y el scope del token con Spring Security antes de responder cualquier endpoint.
+4. En la nube, el objetivo es que **AWS API Gateway** también valide el mismo token (vía JWT Authorizer) antes de reenviar la petición al backend en EC2.
+
+### Apps registradas en Microsoft Entra ID
+
+| App | Rol |
 |---|---|
-| `OWNER` | Dueño de mascota — rol por defecto al registrarse |
-| `CITIZEN` | Ciudadano colaborador |
-| `ORG` | Organización o refugio |
-| `ADMIN` | Administrador del sistema |
+| `SanosYSalvos-Backend` | Expone la API (`api://<tenant>/sanosysalvos`) y el scope `Pets.Access` |
+| `SanosYSalvos-Frontend` | Aplicación SPA que inicia sesión y solicita el scope del backend |
 
-### Usuario administrador
-Al iniciar el `user-service`, se crea automáticamente si no existe:
+### Roles
+Por simplicidad para esta evaluación, el rol de administrador se controla en el frontend por email (no hay App Roles configurados en Azure AD todavía). El resto de los usuarios autenticados entra como usuario normal.
 
-| Campo | Valor |
-|---|---|
-| Email | `admin@sanosysalvos.cl` |
-| Password | `admin1` |
-| Rol | `ADMIN` |
+> ⚠️ **Nota:** el login propio (usuario/contraseña, registro público) del proyecto original fue reemplazado por completo. Funcionalidades que dependían del `userId` interno (dueño de una mascota, perfil editable) quedan simplificadas, ya que Azure AD no conoce ese identificador — no era parte de lo evaluado en esta entrega.
 
 ---
 
 ## 📁 Estructura del repositorio
 
 ```
-Sanos-y-Salvos/
+Sanos-y-Salvos-Cloud-Native-1/
 ├── Backend/
 │   ├── businessdomain/
-│   │   ├── user-service/          # Gestión de usuarios y autenticación
+│   │   ├── user-service/          # Gestión de usuarios
 │   │   ├── pet-service/           # Gestión de mascotas
-│   │   └── report-service/        # Gestión de reportes
+│   │   ├── report-service/        # Gestión de reportes
+│   │   └── category-service/      # Catálogo de especies (nuevo en esta evaluación)
 │   ├── infrastructure/
-│   │   ├── api-gateway/           # Punto de entrada y validación JWT
-│   │   ├── bff-service/           # Backend for Frontend
+│   │   ├── api-gateway/           # Enrutamiento interno
+│   │   ├── bff-service/           # Backend for Frontend + validación JWT (Azure AD)
 │   │   ├── config-server/         # Configuración centralizada
-│   │   ├── eureka-server/         # Service Discovery
-│   │   └── springboot-admin/      # Monitoreo
+│   │   └── eureka-server/         # Service Discovery
 │   ├── docker-compose.yml
 │   └── pom.xml
 └── Frontend/
     ├── src/
     │   ├── app/
-    │   │   ├── core/              # Guards, interceptors, servicios, modelos
+    │   │   ├── msal-config.ts     # Configuración de MSAL (instancia, guard, interceptor)
+    │   │   ├── core/               # Guards, servicios, modelos
     │   │   ├── features/
-    │   │   │   ├── admin/         # Panel de administración
-    │   │   │   ├── auth/          # Login y registro
-    │   │   │   ├── dashboard/     # Página de inicio
-    │   │   │   ├── pets/          # Lista y formulario de mascotas
-    │   │   │   └── reports/       # Lista y formulario de reportes
-    │   │   └── shared/            # Navbar, footer
-    │   └── environments/
-    ├── Dockerfile
-    └── nginx.conf
+    │   │   │   ├── admin/          # Panel de administración
+    │   │   │   ├── auth/           # Login (MSAL) y página de auth-redirect
+    │   │   │   ├── dashboard/      # Página de inicio
+    │   │   │   ├── pets/           # Lista y formulario de mascotas
+    │   │   │   └── reports/        # Lista y formulario de reportes
+    │   │   └── shared/             # Navbar, footer
+    │   └── environments/           # Config de Azure AD (clientId, authority, scopes)
+    └── Dockerfile
 ```
 
 ---
 
-## 🚀 Cómo ejecutar el proyecto
+## 🚀 Cómo ejecutar el proyecto localmente
 
 ### Prerrequisitos
-- Java 21
-- Maven 3.9+
-- Node.js 18+ y npm
+- Java 21, Maven 3.9+
+- Node.js y npm
 - Docker Desktop
+- Un tenant de Microsoft Entra ID con las dos apps registradas (ver sección de Seguridad)
 
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/tu-usuario/Sanos-y-Salvos.git
-cd Sanos-y-Salvos
-```
-
-### 2. Levantar las bases de datos con Docker
+### 1. Base de datos y microservicios de negocio (Docker)
 
 ```bash
 cd Backend
-docker compose up -d user-db pet-db report-db
+docker compose up --build -d user-service pet-service report-service category-service
 ```
 
-### 3. Levantar los microservicios desde IntelliJ
-
-En este orden, esperando que cada uno muestre `Started` antes de lanzar el siguiente:
+### 2. Infraestructura (desde el IDE, en este orden)
 
 ```
 1. EurekaServerApplication     → http://localhost:8761
 2. ConfigServerApplication     → http://localhost:8888
-3. UserServiceApplication      → http://localhost:8081
-4. PetServiceApplication       → http://localhost:8082
-5. ReportServiceApplication    → http://localhost:8083
-6. ApiGatewayApplication       → http://localhost:8080
-7. BffServiceApplication       → http://localhost:8084
-8. SpringBootAdminApplication  → (opcional)
+3. ApiGatewayApplication       → http://localhost:8080
+4. BffServiceApplication       → http://localhost:8084
 ```
 
-### 4. Levantar el Frontend
+> El `config-server` debe estar arriba **antes** que el `api-gateway` y el `bff-service`, ya que ambos leen su configuración (rutas, credenciales de Azure AD) desde ahí al arrancar.
+
+### 3. Frontend
 
 ```bash
 cd Frontend
 npm install
-ng serve
+npm start
 ```
 
-La aplicación estará disponible en **http://localhost:4200**
-
----
-
-## 🐳 Ejecución completa con Docker
-
-```bash
-cd Backend
-docker compose up --build
-```
-
-Solo bases de datos (recomendado para desarrollo local):
-
-```bash
-docker compose up -d user-db pet-db report-db
-```
+La aplicación queda disponible en **http://localhost:4200**. Al abrirla, el login redirige a Microsoft para autenticar contra el tenant configurado en `environment.ts`.
 
 ---
 
 ## 🌐 Endpoints principales
 
-Todos los endpoints pasan por el API Gateway en `http://localhost:8080`
+Todos pasan por el API Gateway en `http://localhost:8080`, salvo el BFF que además exige el JWT de Azure AD:
 
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/api/auth/register` | ❌ | Registrar usuario |
-| POST | `/api/auth/login` | ❌ | Iniciar sesión |
-| GET | `/api/users` | ✅ | Listar usuarios |
-| GET | `/api/pets` | ✅ | Listar mascotas |
-| POST | `/api/pets` | ✅ | Registrar mascota |
-| PUT | `/api/pets/{id}` | ✅ dueño/admin | Actualizar mascota |
-| DELETE | `/api/pets/{id}` | ✅ dueño/admin | Eliminar mascota |
-| GET | `/api/reports` | ✅ | Listar reportes |
-| POST | `/api/reports` | ✅ | Crear reporte |
-| PUT | `/api/reports/{id}` | ✅ dueño/admin | Actualizar reporte |
-| PATCH | `/api/reports/{id}/estado` | ✅ dueño/admin | Cambiar estado |
-| DELETE | `/api/reports/{id}` | ✅ dueño/admin | Eliminar reporte |
-| GET | `/api/bff/dashboard` | ✅ | Dashboard con estadísticas |
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/users` | Listar usuarios |
+| GET | `/api/pets` | Listar mascotas |
+| POST | `/api/pets` | Registrar mascota |
+| GET | `/api/categories` | Listar especies (Perro, Gato, Ave, Otros) |
+| GET | `/api/reports` | Listar reportes |
+| POST | `/api/reports` | Crear reporte |
+| GET | `/api/bff/dashboard` | Dashboard con estadísticas (requiere JWT de Azure AD) |
+| GET | `/api/bff/usuarios/{id}/mascotas` | Requiere JWT + scope `Pets.Access` |
 
 ---
 
-## 📖 Documentación Swagger
+## ☁️ Estado del despliegue en la nube
 
-Con los servicios corriendo:
-
-| Servicio | URL |
+| Componente | Estado |
 |---|---|
-| User Service | http://localhost:8081/swagger-ui.html |
-| Pet Service | http://localhost:8082/swagger-ui.html |
-| Report Service | http://localhost:8083/swagger-ui.html |
-
----
-
-## 📚 READMEs por servicio
-
-- [`Backend/businessdomain/user-service/README_user-service.md`](Backend/businessdomain/user-service/README_user-service.md)
-- [`Backend/businessdomain/pet-service/README_pet-service.md`](Backend/businessdomain/pet-service/README_pet-service.md)
-- [`Backend/businessdomain/report-service/README_report-service.md`](Backend/businessdomain/report-service/README_report-service.md)
-- [`Backend/infrastructure/api-gateway/README_api-gateway.md`](Backend/infrastructure/api-gateway/README_api-gateway.md)
-- [`Backend/infrastructure/bff-service/README_bff-service.md`](Backend/infrastructure/bff-service/README_bff-service.md)
-
----
-
-## 🧪 Pruebas
-
-El proyecto implementa tres niveles de pruebas cubriendo los procesos de negocio más críticos.
-
-### Resumen
-
-| Nivel | Herramienta | Tests | Archivos |
-|---|---|---|---|
-| Unitarias | JUnit 5 + Mockito | 8 | `PetServiceTest`, `ReportServiceTest` |
-| Integración | JUnit 5 + Spring Boot Test + H2 | 14 | `AuthControllerIntegrationTest`, `ReportControllerIntegrationTest` |
-| E2E | Cypress 15 + Chrome | 15 | `login.cy.js`, `reporte.cy.js` |
-| **Total** | | **37** | |
-
-### Pruebas unitarias
-Prueban clases individuales de forma aislada usando **Mockito**. No requieren base de datos ni servidor.
-
-### Pruebas de integración
-Levantan el contexto completo de Spring Boot con **H2 en memoria**. Prueban el flujo Controller → Service → Base de datos sin necesitar MySQL ni ningún servicio externo.
-
-### Pruebas E2E
-Simulan un usuario real navegando en el navegador con **Cypress**. Requieren frontend en `localhost:4200` y backend en `localhost:8080`.
+| Tenant de Microsoft Entra ID + apps registradas | ✅ Listo |
+| Frontend con MSAL (login/logout, guards, interceptor) | ✅ Listo |
+| BFF como Resource Server (valida JWT de Azure AD) | ✅ Listo |
+| AWS API Gateway con JWT Authorizer | ✅ Listo |
+| Microservicios desplegados en EC2 | ✅ Listo |
 
 ---
 
 ## 👥 Equipo
 
-Proyecto desarrollado como parte del ramo de **Fullstack III** en DuocUC.
+Proyecto desarrollado como parte del ramo de **Desarrollo Cloud Native I** en DuocUC.
 
 | Integrante | GitHub |
 |---|---|
-| Lucas Ribeiro | [@LucasVeloster](https://github.com/LucasVeloster) |
+| Aaron Ojeda | [@aaron16-code](https://github.com/aaron16-code) |
 | Francisco García | [@FranMGB96](https://github.com/FranMGB96) |
-
----
-
-```bash
-# Correr tests E2E
-cd Frontend
-npx cypress open
-```
