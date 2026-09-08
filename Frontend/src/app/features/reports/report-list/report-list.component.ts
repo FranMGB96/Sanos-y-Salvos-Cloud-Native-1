@@ -54,7 +54,11 @@ import { ReporteConDetalle } from '../../../core/models/report.model';
               [src]="r.mascota?.fotoUrl"
               class="pet-image"
               [alt]="r.mascota?.nombre"
+              (error)="r.mascota!.fotoUrl = undefined"
             >
+            <div class="pet-image pet-image-fallback" *ngIf="r.mascota && !r.mascota.fotoUrl">
+              <span class="pet-emoji-fallback">{{ getEmoji(r.mascota.especie) }}</span>
+            </div>
 
             <p class="desc">{{ r.descripcion }}</p>
 
@@ -193,6 +197,8 @@ import { ReporteConDetalle } from '../../../core/models/report.model';
       border-radius:14px; margin-bottom:1rem;
       padding:.5rem; display:block;
     }
+    .pet-image-fallback{ display:flex; align-items:center; justify-content:center; }
+    .pet-emoji-fallback{ font-size:4rem; }
 
     .desc{ margin:0 0 1rem; color:#333; font-size:1rem; line-height:1.5; }
 
@@ -274,6 +280,16 @@ import { ReporteConDetalle } from '../../../core/models/report.model';
 })
 
 export class ReportListComponent implements OnInit {
+
+  getEmoji(especie?: string): string {
+    const e = especie?.toLowerCase();
+    if (e === 'perro')  return '🐶';
+    if (e === 'gato')   return '🐱';
+    if (e === 'ave')    return '🐦';
+    if (e === 'conejo') return '🐰';
+    if (e === 'pez')    return '🐟';
+    return '🐾';
+  }
 
   reportes: ReporteConDetalle[] = [];
   filtro = 'TODOS';

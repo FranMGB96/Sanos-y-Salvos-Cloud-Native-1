@@ -145,8 +145,10 @@ import { Dashboard } from '../../core/models/report.model';
               </div>
 
               <div class="report-images">
-                <div class="pet-image-wrapper" *ngIf="r.mascota?.fotoUrl">
-                  <img [src]="r.mascota?.fotoUrl" class="pet-image" alt="Mascota">
+                <div class="pet-image-wrapper" *ngIf="r.mascota">
+                  <img *ngIf="r.mascota.fotoUrl" [src]="r.mascota.fotoUrl" class="pet-image" alt="Mascota"
+                       (error)="r.mascota.fotoUrl = undefined">
+                  <span *ngIf="!r.mascota.fotoUrl" class="pet-emoji-fallback">{{ getEmoji(r.mascota.especie) }}</span>
                 </div>
                 <div class="map-container" *ngIf="r.latitud && r.longitud">
                   <img [src]="getStaticMap(r.latitud, r.longitud)" class="map-image" alt="Mapa">
@@ -402,6 +404,7 @@ import { Dashboard } from '../../core/models/report.model';
       object-fit:contain; object-position:center;
       display:block; padding:4px; box-sizing:border-box;
     }
+    .pet-emoji-fallback{ font-size:3rem; }
 
     .map-container{ position:relative; display:inline-block; flex-shrink:0; }
     .map-image{
@@ -478,6 +481,16 @@ import { Dashboard } from '../../core/models/report.model';
   `]
 })
 export class DashboardComponent implements OnInit {
+
+  getEmoji(especie?: string): string {
+    const e = especie?.toLowerCase();
+    if (e === 'perro')  return '🐶';
+    if (e === 'gato')   return '🐱';
+    if (e === 'ave')    return '🐦';
+    if (e === 'conejo') return '🐰';
+    if (e === 'pez')    return '🐟';
+    return '🐾';
+  }
 
   dashboard: Dashboard | null = null;
   loading = true;

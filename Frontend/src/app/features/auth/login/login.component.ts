@@ -1,69 +1,30 @@
-import { Component } from '@angular/core';
-import {
-  FormBuilder,
-  FormGroup,
-  Validators,
-  ReactiveFormsModule
-} from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    CommonModule,
-    RouterLink
-  ],
+  imports: [CommonModule],
   template: `
     <div class="auth-page">
       <div class="auth-card">
         <div class="auth-header">
           <span class="logo">🐾</span>
           <h1>Sanos y Salvos</h1>
-          <p>Inicia sesión en tu cuenta</p>
+          <p>Inicia sesión con tu cuenta de Microsoft</p>
         </div>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()">
-          <div class="field">
-            <label>Email</label>
-            <input
-              type="email"
-              formControlName="email"
-              placeholder="tu@email.com"
-              [class.error]="f('email').invalid && f('email').touched"
-            >
-          </div>
+        <div class="alert" *ngIf="errorMsg">
+          {{ errorMsg }}
+        </div>
 
-          <div class="field">
-            <label>Contraseña</label>
-            <input
-              type="password"
-              formControlName="password"
-              placeholder="••••••"
-              [class.error]="f('password').invalid && f('password').touched"
-            >
-          </div>
-
-          <div class="alert" *ngIf="errorMsg">
-            {{ errorMsg }}
-          </div>
-
-          <button
-            type="submit"
-            [disabled]="loading"
-          >
-            {{ loading ? 'Ingresando...' : 'Ingresar' }}
-          </button>
-        </form>
-
-        <p class="footer-link">
-          ¿No tienes cuenta?
-          <a routerLink="/register">Regístrate</a>
-        </p>
+        <button (click)="loginConMicrosoft()" [disabled]="loading">
+          <span class="ms-icon">⊞</span>
+          {{ loading ? 'Ingresando...' : 'Iniciar sesión con Microsoft' }}
+        </button>
       </div>
     </div>
   `,
@@ -105,37 +66,6 @@ import { AuthService } from '../../../core/services/auth.service';
       font-size: .9rem;
     }
 
-    .field {
-      margin-bottom: 1.2rem;
-    }
-
-    label {
-      display: block;
-      font-size: .85rem;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: .4rem;
-    }
-
-    input {
-      width: 100%;
-      padding: .75rem 1rem;
-      border: 1.5px solid #ddd;
-      border-radius: 8px;
-      font-size: .95rem;
-      box-sizing: border-box;
-      outline: none;
-      transition: border .2s;
-    }
-
-    input:focus {
-      border-color: #1a237e;
-    }
-
-    input.error {
-      border-color: #e53935;
-    }
-
     .alert {
       background: #ffebee;
       color: #c62828;
@@ -155,6 +85,10 @@ import { AuthService } from '../../../core/services/auth.service';
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .6rem;
     }
 
     button:disabled {
@@ -162,67 +96,39 @@ import { AuthService } from '../../../core/services/auth.service';
       cursor: not-allowed;
     }
 
-    .footer-link {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: .9rem;
-      color: #666;
-    }
-
-    .footer-link a {
-      color: #1a237e;
-      font-weight: 600;
+    .ms-icon {
+      font-size: 1.2rem;
     }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
 
-  form: FormGroup;
   loading = false;
   errorMsg = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private auth: AuthService,
-    private router: Router
-  ) {
-    this.form = this.fb.group({
-      email: [
-        '',
-        [
-          Validators.required,
-          Validators.email
-        ]
-      ],
-      password: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(6)
-        ]
-      ]
-    });
-  }
+  constructor(private auth: AuthService, private router: Router) {}
 
-  f(n: string) {
-    return this.form.get(n)!;
-  }
-
-  onSubmit() {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
+  ngOnInit() {
+    // Si el usuario ya tiene sesión activa (ej. volvió a /login manualmente,
+    // con el botón "atrás" del navegador, o por un enlace viejo) no tiene
+    // sentido mostrarle el login de nuevo.
+    if (this.auth.isLoggedIn()) {
+      this.router.navigate(['/inicio']);
     }
+  }
 
+  loginConMicrosoft() {
     this.loading = true;
     this.errorMsg = '';
-
-    this.auth.login(this.form.value).subscribe({
-      next: () => this.router.navigate(['/inicio']),
-      error: () => {
-        this.errorMsg = 'Email o contraseña incorrectos';
-        this.loading = false;
-      }
-    });
+    // login() navega la página completa hacia Microsoft; no hay nada más
+    // que hacer aquí. Si algo sale mal antes de salir de la página (ej.
+    // configuración inválida), MSAL lanza el error de forma síncrona.
+    try {
+      this.auth.login();
+    } catch (err) {
+      console.error('Error al iniciar sesión con Microsoft', err);
+      this.loading = false;
+      this.errorMsg = 'No se pudo iniciar sesión. Intenta de nuevo.';
+    }
   }
 }

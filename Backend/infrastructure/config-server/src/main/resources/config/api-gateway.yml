@@ -19,7 +19,6 @@ spring:
             - Path=/api/users/**
           filters:
             - StripPrefix=1
-            - AuthenticationFilter
 
         - id: pet-service
           uri: lb://pet-service
@@ -27,7 +26,6 @@ spring:
             - Path=/api/pets/**
           filters:
             - StripPrefix=1
-            - AuthenticationFilter
 
         - id: report-service
           uri: lb://report-service
@@ -35,7 +33,6 @@ spring:
             - Path=/api/reports/**
           filters:
             - StripPrefix=1
-            - AuthenticationFilter
 
         - id: category-service
           uri: lb://category-service
@@ -43,7 +40,6 @@ spring:
             - Path=/api/categories/**
           filters:
             - StripPrefix=1
-            - AuthenticationFilter
 
         - id: bff-service
           uri: lb://bff-service
@@ -51,17 +47,18 @@ spring:
             - Path=/api/bff/**
           filters:
             - StripPrefix=1
-          # Sin AuthenticationFilter: el BFF ahora valida el JWT de Microsoft
-          # Entra ID directamente con Spring Security (ver SecurityConfig del
-          # bff-service). Ese JWT no es compatible con el AuthenticationFilter
-          # interno (que valida el token HS256 propio emitido por user-service).
+          # Todas las rutas de este gateway quedaron sin AuthenticationFilter:
+          # el sistema ahora usa JWT de Microsoft Entra ID (RS256), validado
+          # por el BFF con Spring Security, no el token HS256 propio que
+          # emitía user-service. Dejar AuthenticationFilter en cualquier ruta
+          # rompe esa ruta, porque rechaza el nuevo JWT como inválido.
 
       globalcors:
         cors-configurations:
           '[/**]':
             allowedOrigins:
               - "http://localhost:4200"
-            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]  # <-- PATCH agregado
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
             allowedHeaders: "*"
             allowCredentials: true
 

@@ -58,7 +58,7 @@ interface PetConDueno extends Pet {
               *ngIf="pet.fotoUrl"
               [src]="pet.fotoUrl"
               [alt]="pet.nombre"
-              (error)="pet.fotoUrl='https://placehold.co/400x300?text=Mascota'"
+              (error)="pet.fotoUrl = undefined"
             >
             <span *ngIf="!pet.fotoUrl" class="pet-emoji">
               {{ getEmoji(pet.especie) }}

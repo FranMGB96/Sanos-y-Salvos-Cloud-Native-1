@@ -5,7 +5,7 @@ import { adminGuard } from './core/guards/admin.guard';
 export const routes: Routes = [
   { path: '', redirectTo: 'inicio', pathMatch: 'full' },
   { path: 'login',    loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent) },
-  { path: 'register', loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent) },
+  { path: 'auth-redirect', loadComponent: () => import('./features/auth/auth-redirect/auth-redirect.component').then(m => m.AuthRedirectComponent) },
   { path: 'inicio',        canActivate: [authGuard],  loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
   { path: 'pets',          canActivate: [authGuard],  loadComponent: () => import('./features/pets/pet-list/pet-list.component').then(m => m.PetListComponent) },
   { path: 'pets/new',      canActivate: [authGuard],  loadComponent: () => import('./features/pets/pet-form/pet-form.component').then(m => m.PetFormComponent) },

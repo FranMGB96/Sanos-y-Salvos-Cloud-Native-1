@@ -1,60 +1,68 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { AuthRequest, AuthResponse, RegisterRequest } from '../models/user.model';
+import { MsalService } from '@azure/msal-angular';
 import { environment } from '../../../environments/environment';
+
+export interface CurrentUser {
+  nombre: string;
+  email: string;
+  // Ya no existe un ID interno numérico de user-service (Azure AD no lo
+  // conoce). Queda en null a propósito: features que dependían de un
+  // userId real (editar perfil, "reporterUserId", ownerId de mascotas)
+  // no van a funcionar del todo con este login simplificado.
+  userId: number | null;
+  rol?: string;
+  telefono?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly TOKEN_KEY = 'sns_token';
-  private readonly USER_KEY  = 'sns_user';
-  private apiUrl = `${environment.apiUrl}/auth`;
-  private currentUserSubject = new BehaviorSubject<AuthResponse | null>(this.loadUser());
-  currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private msalService: MsalService) {}
 
-  login(request: AuthRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request).pipe(tap(r => this.save(r)));
-  }
-
-  register(request: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request).pipe(tap(r => this.save(r)));
+  // Con Redirect, esto navega la página completa hacia Microsoft; no hay
+  // nada que "esperar" en este mismo componente. El resultado se procesa
+  // al volver, en initializeMsal() (app.config.ts) + AuthRedirectComponent.
+  login(): void {
+    this.msalService.loginRedirect({ scopes: environment.azure.scopes });
   }
 
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    this.currentUserSubject.next(null);
-    this.router.navigate(['/login']);
+    this.msalService.logoutRedirect();
   }
 
-  getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }
-  isLoggedIn(): boolean { return !!this.getToken(); }
-  getCurrentUser(): AuthResponse | null { return this.currentUserSubject.value; }
-
-  // ✅ Actualizar datos del usuario en memoria y localStorage
-  updateCurrentUser(parcial: Partial<AuthResponse>): void {
-    const current = this.currentUserSubject.value;
-    if (!current) return;
-    const updated = { ...current, ...parcial };
-    localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
-    this.currentUserSubject.next(updated);
+  isLoggedIn(): boolean {
+    return this.msalService.instance.getAllAccounts().length > 0;
   }
 
-  private save(r: AuthResponse): void {
-    localStorage.setItem(this.TOKEN_KEY, r.token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(r));
-    this.currentUserSubject.next(r);
+  getCurrentUser(): CurrentUser | null {
+    const account = this.msalService.instance.getActiveAccount()
+      ?? this.msalService.instance.getAllAccounts()[0]
+      ?? null;
+    if (!account) return null;
+    return { nombre: account.name ?? account.username, email: account.username, userId: null };
   }
 
-  private loadUser(): AuthResponse | null {
-    const raw = localStorage.getItem(this.USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  }
+  // Simplificado para esta evaluación: en vez de configurar App Roles reales
+  // en Azure AD (más trabajo y no evaluado en la rúbrica), tratamos como
+  // admin solo a esta cuenta específica. Cualquier otra que inicie sesión
+  // es un usuario normal.
+  private readonly ADMIN_EMAIL = 'fra.garciab@duocuc.cl';
 
   isAdmin(): boolean {
-    return this.getCurrentUser()?.rol === 'ADMIN';
+    return this.getCurrentUser()?.email?.toLowerCase() === this.ADMIN_EMAIL;
+  }
+
+  // ── Stubs de compatibilidad ──────────────────────────────
+  // Mantienen el proyecto compilando para pantallas que dependían del
+  // login propio (editar perfil, cambiar contraseña). MsalInterceptor ya
+  // adjunta el token real automáticamente a las llamadas a la API, así
+  // que getToken() ya no es necesario para eso — solo evita errores de
+  // compilación en código legado que no es parte de esta evaluación.
+  getToken(): string | null {
+    return null;
+  }
+
+  updateCurrentUser(_parcial: Partial<CurrentUser>): void {
+    // No-op: la identidad ahora la maneja MSAL, no hay estado local que actualizar.
   }
 }

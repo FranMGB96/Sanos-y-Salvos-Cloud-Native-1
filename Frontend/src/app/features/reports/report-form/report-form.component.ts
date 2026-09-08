@@ -176,7 +176,7 @@ export class ReportFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     const user = this.auth.getCurrentUser();
-    if (user) {
+    if (user?.userId != null) {
       this.petService.getByOwner(user.userId).subscribe({
         next: p => this.mismascotas = p,
         error: () => {}
