@@ -19,6 +19,7 @@ import { CommonModule } from '@angular/common';
         <a routerLink="/inicio"   routerLinkActive="active">Inicio</a>
         <a routerLink="/pets"     routerLinkActive="active">Mascotas</a>
         <a routerLink="/reports"  routerLinkActive="active">Reportes</a>
+ <a *ngIf="auth.isAdmin()" routerLink="/token" routerLinkActive="active">🔑 Token</a>
         <a *ngIf="auth.isAdmin()" routerLink="/admin" routerLinkActive="active" class="admin-link">
           ⚙️ Panel Admin
         </a>

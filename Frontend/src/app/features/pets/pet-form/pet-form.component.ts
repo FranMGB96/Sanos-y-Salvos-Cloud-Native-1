@@ -447,7 +447,7 @@ onSubmit() {
 
   // ✅ ownerId solo al crear, al editar lo toma el backend del JWT
   if (!this.isEdit) {
-    formData.append('ownerId', String(this.auth.getCurrentUser()?.userId || ''));
+    formData.append('ownerId', String(this.auth.getCurrentUser()?.userId || '1'));
   }
 
   if (this.selectedFile) {

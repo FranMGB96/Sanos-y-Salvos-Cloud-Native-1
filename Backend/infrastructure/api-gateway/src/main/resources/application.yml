@@ -17,6 +17,7 @@ spring:
         cors-configurations:
           '[/**]':
             allowedOrigins:
+              - "https://34.194.16.77.sslip.io"
               - "http://localhost:4200"
             allowedMethods:
               - GET

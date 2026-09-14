@@ -160,6 +160,7 @@ services:
       DB_HOST: pet-db
       EUREKA_URI: http://eureka-server:8761/eureka
       CONFIG_SERVER_URI: http://config-server:8888
+      PET_SERVICE_BASE_URL: https://34.194.16.77.sslip.io
     depends_on:
       pet-db:
         condition: service_healthy
@@ -227,17 +228,17 @@ services:
       - petshop-net
 
   # ─── FRONTEND ─────────────────────────────────────────────────
-#  frontend:
-#    build:
-#      context: ./frontend
-#      dockerfile: Dockerfile
-#    container_name: frontend
-#    ports:
-#      - "4200:80"
-#    depends_on:
-#      - api-gateway
-#    networks:
-#      - petshop-net
+  frontend:
+    build:
+      context: ../Frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - petshop-net
 
 networks:
   petshop-net:

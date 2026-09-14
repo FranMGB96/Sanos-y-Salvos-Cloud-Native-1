@@ -176,8 +176,8 @@ export class ReportFormComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     const user = this.auth.getCurrentUser();
-    if (user?.userId != null) {
-      this.petService.getByOwner(user.userId).subscribe({
+    if (true) {
+      this.petService.getAll().subscribe({
         next: p => this.mismascotas = p,
         error: () => {}
       });
@@ -318,7 +318,7 @@ export class ReportFormComponent implements OnInit, AfterViewInit, OnDestroy {
     this.errorMsg = '';
     const user = this.auth.getCurrentUser();
     const raw = this.form.value;
-    this.reportService.create({ ...raw, petId: raw.petId || null, reporterUserId: user?.userId }).subscribe({
+    this.reportService.create({ ...raw, petId: raw.petId || null, reporterUserId: user?.userId || 1 }).subscribe({
       next: () => { this.successMsg = 'Reporte publicado con éxito'; setTimeout(() => this.router.navigate(['/reports']), 1200); },
       error: () => { this.errorMsg = 'Error al publicar.'; this.loading = false; }
     });

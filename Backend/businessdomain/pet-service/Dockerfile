@@ -11,6 +11,8 @@ COPY infrastructure/eureka-server/pom.xml  ./infrastructure/eureka-server/pom.xm
 COPY infrastructure/config-server/pom.xml  ./infrastructure/config-server/pom.xml
 COPY infrastructure/api-gateway/pom.xml    ./infrastructure/api-gateway/pom.xml
 COPY infrastructure/bff-service/pom.xml    ./infrastructure/bff-service/pom.xml
+COPY businessdomain/category-service/pom.xml ./businessdomain/category-service/pom.xml
+COPY infrastructure/springboot-admin/pom.xml ./infrastructure/springboot-admin/pom.xml
 RUN mvn dependency:go-offline -pl businessdomain/pet-service -am -B
 COPY businessdomain/pet-service/src ./businessdomain/pet-service/src
 RUN mvn package -pl businessdomain/pet-service -am -DskipTests

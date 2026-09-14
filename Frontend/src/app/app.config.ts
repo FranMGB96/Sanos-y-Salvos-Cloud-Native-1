@@ -12,6 +12,7 @@ import {
   MSAL_INTERCEPTOR_CONFIG,
 } from '@azure/msal-angular';
 import { routes } from './app.routes';
+import { ErrorInterceptor } from './core/interceptors/error.interceptor';
 import {
   msalInstanceFactory,
   msalGuardConfigFactory,
@@ -45,6 +46,7 @@ export const appConfig: ApplicationConfig = {
     { provide: MSAL_GUARD_CONFIG, useFactory: msalGuardConfigFactory },
     { provide: MSAL_INTERCEPTOR_CONFIG, useFactory: msalInterceptorConfigFactory },
     { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
+ { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
     { provide: APP_INITIALIZER, useFactory: initializeMsal, deps: [MsalService], multi: true },
   ]
 };

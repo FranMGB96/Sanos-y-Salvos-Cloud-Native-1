@@ -15,6 +15,8 @@ COPY infrastructure/eureka-server/pom.xml  ./infrastructure/eureka-server/pom.xm
 COPY infrastructure/config-server/pom.xml  ./infrastructure/config-server/pom.xml
 COPY infrastructure/api-gateway/pom.xml    ./infrastructure/api-gateway/pom.xml
 COPY infrastructure/bff-service/pom.xml    ./infrastructure/bff-service/pom.xml
+COPY businessdomain/category-service/pom.xml ./businessdomain/category-service/pom.xml
+COPY infrastructure/springboot-admin/pom.xml ./infrastructure/springboot-admin/pom.xml
 RUN mvn dependency:go-offline -pl infrastructure/config-server -am -B
 # Copiar solo el código fuente del servicio que vamos a compilar
 COPY infrastructure/config-server/src ./infrastructure/config-server/src
