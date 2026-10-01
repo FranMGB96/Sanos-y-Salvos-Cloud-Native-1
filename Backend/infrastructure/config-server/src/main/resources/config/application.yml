@@ -1,0 +1,49 @@
+# ============================================================
+# Configuración COMPARTIDA por todos los servicios (Evaluación 2)
+# El config-server entrega este archivo a cada microservicio.
+# Aquí viven TODOS los nombres de RabbitMQ: el código Java no
+# escribe ningún nombre a mano, solo los lee de aquí.
+# ============================================================
+spring:
+  rabbitmq:
+    # Lista de nodos del clúster: si uno cae, el cliente usa el otro
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBITMQ_USER:sanos_admin}
+    password: ${RABBITMQ_PASSWORD:Sanos2026}
+    connection-timeout: 3s            # si RabbitMQ está caído, falla rápido (no cuelga la API)
+    listener:
+      simple:
+        acknowledge-mode: manual      # ACK explícito en el código
+        prefetch: 1                   # un mensaje a la vez por consumidor
+        missing-queues-fatal: false   # no falla si la cola aún no existe
+
+sanosysalvos:
+  messaging:
+    exchanges:
+      reports-topic: sys.reports.topic      # topic: reportes y estados
+      tickets-direct: sys.tickets.direct    # direct: tickets
+      dlx: sys.dlx                          # direct: recibe los rechazados
+    queues:
+      report-created: notification.report-created.queue
+      report-created-dlq: notification.report-created.dlq
+      ticket: ticket.generation.queue
+      ticket-dlq: ticket.generation.dlq
+      audit: audit.report-status.queue
+      audit-dlq: audit.report-status.dlq
+    routing-keys:
+      report-created-prefix: "report.created."   # + perdido | encontrado
+      report-created-pattern: "report.created.#"
+      ticket-generate: ticket.generate
+      status-prefix: "report.status."            # + activo | resuelto | cerrado
+      status-pattern: "report.status.*"
+      dlq-report-created: dlq.report-created
+      dlq-ticket: dlq.ticket
+      dlq-audit: dlq.audit
+    # Política de reintentos de los consumidores (errores transitorios)
+    retry:
+      max-attempts: 3        # intentos totales antes de mandar el mensaje a la DLQ
+      backoff-ms: 1000       # espera base: 1 s, luego 2 s, ...
+    # Solo para la DEMO: si la descripción del reporte contiene este texto,
+    # el consumidor simula un fallo temporal (sirve para mostrar reintentos -> DLQ)
+    demo:
+      failure-marker: "[FALLO-TEMPORAL]"

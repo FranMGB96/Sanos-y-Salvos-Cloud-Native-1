@@ -13,6 +13,7 @@ COPY infrastructure/api-gateway/pom.xml    ./infrastructure/api-gateway/pom.xml
 COPY infrastructure/bff-service/pom.xml    ./infrastructure/bff-service/pom.xml
 COPY businessdomain/category-service/pom.xml ./businessdomain/category-service/pom.xml
 COPY infrastructure/springboot-admin/pom.xml ./infrastructure/springboot-admin/pom.xml
+COPY infrastructure/rabbitmq-admin-service/pom.xml ./infrastructure/rabbitmq-admin-service/pom.xml
 RUN mvn dependency:go-offline -pl businessdomain/user-service -am -B
 COPY businessdomain/user-service/src ./businessdomain/user-service/src
 RUN mvn package -pl businessdomain/user-service -am -DskipTests

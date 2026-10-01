@@ -6,6 +6,7 @@ services:
   user-db:
     image: mysql:8.0
     container_name: user-db
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: user_db
@@ -24,6 +25,7 @@ services:
   pet-db:
     image: mysql:8.0
     container_name: pet-db
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: pet_db
@@ -42,6 +44,7 @@ services:
   report-db:
     image: mysql:8.0
     container_name: report-db
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: report_db
@@ -60,6 +63,7 @@ services:
   category-db:
     image: mysql:8.0
     container_name: category-db
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: category_db
@@ -75,12 +79,65 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─── RABBITMQ (clúster de 2 nodos) ────────────────────────────
+  rabbitmq-1:
+    image: rabbitmq:4.0-management
+    container_name: rabbitmq-1
+    restart: unless-stopped
+    hostname: rabbitmq-1
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: sanos_admin
+      RABBITMQ_DEFAULT_PASS: Sanos2026
+      RABBITMQ_ERLANG_COOKIE: sanosysalvos_cookie_secreta
+    volumes:
+      - rabbitmq-data-1:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    networks:
+      - petshop-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+
+  rabbitmq-2:
+    image: rabbitmq:4.0-management
+    container_name: rabbitmq-2
+    restart: unless-stopped
+    hostname: rabbitmq-2
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: sanos_admin
+      RABBITMQ_DEFAULT_PASS: Sanos2026
+      RABBITMQ_ERLANG_COOKIE: sanosysalvos_cookie_secreta
+    volumes:
+      - rabbitmq-data-2:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    networks:
+      - petshop-net
+    depends_on:
+      rabbitmq-1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+
   # ─── INFRAESTRUCTURA ──────────────────────────────────────────
   eureka-server:
     build:
       context: .
       dockerfile: infrastructure/eureka-server/Dockerfile
     container_name: eureka-server
+    restart: unless-stopped
     ports:
       - "8761:8761"
     networks:
@@ -96,6 +153,7 @@ services:
       context: .
       dockerfile: infrastructure/config-server/Dockerfile
     container_name: config-server
+    restart: unless-stopped
     ports:
       - "8888:8888"
     environment:
@@ -116,6 +174,7 @@ services:
       context: .
       dockerfile: infrastructure/api-gateway/Dockerfile
     container_name: api-gateway
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
@@ -135,16 +194,22 @@ services:
       context: .
       dockerfile: businessdomain/user-service/Dockerfile
     container_name: user-service
+    restart: unless-stopped
     ports:
       - "8081:8081"
     environment:
       DB_HOST: user-db
+      RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
       EUREKA_URI: http://eureka-server:8761/eureka
       CONFIG_SERVER_URI: http://config-server:8888
     depends_on:
       user-db:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      rabbitmq-1:
+        condition: service_healthy
+      rabbitmq-2:
         condition: service_healthy
     networks:
       - petshop-net
@@ -154,10 +219,12 @@ services:
       context: .
       dockerfile: businessdomain/pet-service/Dockerfile
     container_name: pet-service
+    restart: unless-stopped
     ports:
       - "8082:8082"
     environment:
       DB_HOST: pet-db
+      RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
       EUREKA_URI: http://eureka-server:8761/eureka
       CONFIG_SERVER_URI: http://config-server:8888
       PET_SERVICE_BASE_URL: https://34.194.16.77.sslip.io
@@ -165,6 +232,10 @@ services:
       pet-db:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      rabbitmq-1:
+        condition: service_healthy
+      rabbitmq-2:
         condition: service_healthy
     networks:
       - petshop-net
@@ -174,16 +245,22 @@ services:
       context: .
       dockerfile: businessdomain/report-service/Dockerfile
     container_name: report-service
+    restart: unless-stopped
     ports:
       - "8083:8083"
     environment:
       DB_HOST: report-db
+      RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
       EUREKA_URI: http://eureka-server:8761/eureka
       CONFIG_SERVER_URI: http://config-server:8888
     depends_on:
       report-db:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      rabbitmq-1:
+        condition: service_healthy
+      rabbitmq-2:
         condition: service_healthy
     networks:
       - petshop-net
@@ -193,6 +270,7 @@ services:
       context: .
       dockerfile: businessdomain/category-service/Dockerfile
     container_name: category-service
+    restart: unless-stopped
     ports:
       - "8085:8085"
     environment:
@@ -212,6 +290,7 @@ services:
       context: .
       dockerfile: infrastructure/bff-service/Dockerfile
     container_name: bff-service
+    restart: unless-stopped
     ports:
       - "8084:8084"
     environment:
@@ -227,12 +306,36 @@ services:
     networks:
       - petshop-net
 
+  # ─── ADMINISTRACIÓN DE RABBITMQ (API REST) ────────────────────
+  rabbitmq-admin-service:
+    build:
+      context: .
+      dockerfile: infrastructure/rabbitmq-admin-service/Dockerfile
+    container_name: rabbitmq-admin-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka
+      CONFIG_SERVER_URI: http://config-server:8888
+      RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
+    depends_on:
+      config-server:
+        condition: service_healthy
+      rabbitmq-1:
+        condition: service_healthy
+      rabbitmq-2:
+        condition: service_healthy
+    networks:
+      - petshop-net
+
   # ─── FRONTEND ─────────────────────────────────────────────────
   frontend:
     build:
       context: ../Frontend
       dockerfile: Dockerfile
     container_name: frontend
+    restart: unless-stopped
     ports:
       - "4200:80"
     depends_on:
@@ -249,6 +352,8 @@ volumes:
   pet-db-data:
   report-db-data:
   category-db-data:
+  rabbitmq-data-1:
+  rabbitmq-data-2:
 
 
 #docker compose up -d user-db pet-db report-db category-db

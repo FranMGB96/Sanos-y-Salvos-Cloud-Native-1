@@ -49,6 +49,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- RabbitMQ: mensajería asíncrona (Evaluación 2) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
         <!-- H2 — base de datos en memoria para tests -->
         <dependency>
             <groupId>com.h2database</groupId>

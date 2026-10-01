@@ -3,6 +3,7 @@ package com.sanosysalvos.reportservice.service;
 import com.sanosysalvos.reportservice.dto.ReportDto;
 import com.sanosysalvos.reportservice.exception.ResourceNotFoundException;
 import com.sanosysalvos.reportservice.exception.UnauthorizedException;
+import com.sanosysalvos.reportservice.messaging.publisher.ReportEventPublisher;
 import com.sanosysalvos.reportservice.model.Report;
 import com.sanosysalvos.reportservice.repository.ReportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 public class ReportService {
 
     @Autowired private ReportRepository reportRepository;
+    @Autowired private ReportEventPublisher eventPublisher; // RabbitMQ (Evaluación 2)
 
     public List<ReportDto> getAllReports() {
         return reportRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
@@ -52,7 +54,11 @@ public class ReportService {
                 .petId(dto.getPetId())
                 .reporterUserId(dto.getReporterUserId())
                 .build();
-        return toDto(reportRepository.save(r));
+        Report saved = reportRepository.save(r);
+        // Mensajería asíncrona (RabbitMQ): no altera el resultado ni lanza excepciones
+        eventPublisher.publishReportCreated(saved);
+        eventPublisher.publishTicketRequested(saved);
+        return toDto(saved);
     }
 
     public ReportDto updateReport(Long id, ReportDto dto, Long requestingUserId, String requestingUserRole) {
@@ -65,6 +71,7 @@ public class ReportService {
             throw new UnauthorizedException("No tienes permiso para modificar este reporte");
         }
 
+        Report.EstadoReporte estadoPrevio = r.getEstado();
         if (dto.getDescripcion()          != null) r.setDescripcion(dto.getDescripcion());
         if (dto.getLatitud()              != null) r.setLatitud(dto.getLatitud());
         if (dto.getLongitud()             != null) r.setLongitud(dto.getLongitud());
@@ -72,7 +79,9 @@ public class ReportService {
         if (dto.getEstado()               != null) r.setEstado(Report.EstadoReporte.valueOf(dto.getEstado().toUpperCase()));
         r.setUpdatedAt(LocalDateTime.now());
 
-        return toDto(reportRepository.save(r));
+        Report saved = reportRepository.save(r);
+        eventPublisher.publishStatusChanged(saved, estadoPrevio);
+        return toDto(saved);
     }
 
     public ReportDto updateEstado(Long id, String nuevoEstado, Long requestingUserId, String requestingUserRole) {
@@ -85,9 +94,12 @@ public class ReportService {
             throw new UnauthorizedException("No tienes permiso para modificar este reporte");
         }
 
+        Report.EstadoReporte estadoPrevio = r.getEstado();
         r.setEstado(Report.EstadoReporte.valueOf(nuevoEstado.toUpperCase()));
         r.setUpdatedAt(LocalDateTime.now());
-        return toDto(reportRepository.save(r));
+        Report saved = reportRepository.save(r);
+        eventPublisher.publishStatusChanged(saved, estadoPrevio);
+        return toDto(saved);
     }
 
     public void deleteReport(Long id, Long requestingUserId, String requestingUserRole) {
@@ -100,9 +112,11 @@ public class ReportService {
             throw new UnauthorizedException("No tienes permiso para eliminar este reporte");
         }
 
+        Report.EstadoReporte estadoPrevio = r.getEstado();
         r.setEstado(Report.EstadoReporte.CERRADO);
         r.setUpdatedAt(LocalDateTime.now());
-        reportRepository.save(r);
+        Report saved = reportRepository.save(r);
+        eventPublisher.publishStatusChanged(saved, estadoPrevio);
     }
     private Report findOrThrow(Long id) {
         return reportRepository.findById(id)

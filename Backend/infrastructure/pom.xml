@@ -24,5 +24,6 @@
         <module>api-gateway</module>
         <module>bff-service</module>
         <module>springboot-admin</module>
+        <module>rabbitmq-admin-service</module>
     </modules>
 </project>
