@@ -30,3 +30,6 @@ npm-debug.log*
 
 # Docker
 .env
+
+# Archivos subidos en runtime (imágenes de mascotas)
+uploads/
