@@ -85,8 +85,6 @@ La autenticación **ya no usa un login propio con JWT interno**. El flujo real e
 | `SanosYSalvos-Backend` | Expone la API (`api://<tenant>/sanosysalvos`) y el scope `Pets.Access` |
 | `SanosYSalvos-Frontend` | Aplicación SPA que inicia sesión y solicita el scope del backend |
 
-> ⚠️ **Nota (limitación conocida):** el login propio del proyecto original fue reemplazado por Azure AD. Azure entrega el nombre y el correo del usuario, pero no el `userId` interno de la base de datos, así que por ahora las mascotas y los reportes nuevos quedan asociados al usuario 1. La mejora pendiente es un endpoint en user-service que lea el correo desde el token, busque o cree al usuario y devuelva su id (no requiere cambios en Azure).
-
 ---
 
 ## 📨 Mensajería con RabbitMQ (Eval 2)
