@@ -14,6 +14,8 @@ COPY infrastructure/bff-service/pom.xml    ./infrastructure/bff-service/pom.xml
 COPY businessdomain/category-service/pom.xml ./businessdomain/category-service/pom.xml
 COPY infrastructure/springboot-admin/pom.xml ./infrastructure/springboot-admin/pom.xml
 COPY infrastructure/rabbitmq-admin-service/pom.xml ./infrastructure/rabbitmq-admin-service/pom.xml
+COPY businessdomain/analytics-service/pom.xml ./businessdomain/analytics-service/pom.xml
+COPY infrastructure/kafka-admin-service/pom.xml ./infrastructure/kafka-admin-service/pom.xml
 RUN mvn dependency:go-offline -pl businessdomain/pet-service -am -B
 COPY businessdomain/pet-service/src ./businessdomain/pet-service/src
 RUN mvn package -pl businessdomain/pet-service -am -DskipTests

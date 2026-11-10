@@ -15,7 +15,7 @@
     <artifactId>businessdomain</artifactId>
     <packaging>pom</packaging>
     <name>Business Domain</name>
-    <description>Módulos de dominio de negocio: usuarios, mascotas y reportes</description>
+    <description>Módulos de dominio de negocio: usuarios, mascotas, reportes, categorías y analytics</description>
 
     <!-- Sub-módulos de negocio -->
     <modules>
@@ -23,5 +23,6 @@
         <module>pet-service</module>
         <module>report-service</module>
         <module>category-service</module>
+        <module>analytics-service</module>
     </modules>
 </project>

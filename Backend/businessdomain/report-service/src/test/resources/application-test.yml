@@ -23,3 +23,12 @@ spring:
 eureka:
   client:
     enabled: false
+
+# Kafka apagado en los tests: no hay brokers y el productor no debe esperar conexión
+sanosysalvos:
+  kafka:
+    enabled: false
+    topics:
+      report-events: sys.reports.events
+      alerts: sys.reports.alerts
+      dlt-suffix: .DLT

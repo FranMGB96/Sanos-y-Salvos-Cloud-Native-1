@@ -16,6 +16,9 @@ spring:
       enabled: false   # No conectar al Config Server durante tests
   config:
     import: ""
+  kafka:
+    admin:
+      auto-create: false
   autoconfigure:
     exclude:
       - org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration
@@ -28,3 +31,13 @@ jwt:
 eureka:
   client:
     enabled: false   # No registrarse en Eureka durante tests
+
+# Kafka apagado en los tests: no hay brokers, así que no se inician los listeners
+# ni se intenta crear el topic DLT
+sanosysalvos:
+  kafka:
+    enabled: false
+    topics:
+      report-events: sys.reports.events
+      alerts: sys.reports.alerts
+      dlt-suffix: .DLT

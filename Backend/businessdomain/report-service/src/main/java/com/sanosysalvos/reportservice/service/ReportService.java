@@ -3,6 +3,7 @@ package com.sanosysalvos.reportservice.service;
 import com.sanosysalvos.reportservice.dto.ReportDto;
 import com.sanosysalvos.reportservice.exception.ResourceNotFoundException;
 import com.sanosysalvos.reportservice.exception.UnauthorizedException;
+import com.sanosysalvos.reportservice.messaging.kafka.KafkaReportEventProducer;
 import com.sanosysalvos.reportservice.messaging.publisher.ReportEventPublisher;
 import com.sanosysalvos.reportservice.model.Report;
 import com.sanosysalvos.reportservice.repository.ReportRepository;
@@ -17,6 +18,7 @@ public class ReportService {
 
     @Autowired private ReportRepository reportRepository;
     @Autowired private ReportEventPublisher eventPublisher; // RabbitMQ (Evaluación 2)
+    @Autowired private KafkaReportEventProducer kafkaProducer; // Kafka (Evaluación 3)
 
     public List<ReportDto> getAllReports() {
         return reportRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
@@ -58,6 +60,8 @@ public class ReportService {
         // Mensajería asíncrona (RabbitMQ): no altera el resultado ni lanza excepciones
         eventPublisher.publishReportCreated(saved);
         eventPublisher.publishTicketRequested(saved);
+        // Streaming (Kafka): el mismo hecho queda en el flujo de eventos para analytics y el historial
+        kafkaProducer.publishReportCreated(saved);
         return toDto(saved);
     }
 
@@ -81,6 +85,7 @@ public class ReportService {
 
         Report saved = reportRepository.save(r);
         eventPublisher.publishStatusChanged(saved, estadoPrevio);
+        kafkaProducer.publishStatusChanged(saved, estadoPrevio);
         return toDto(saved);
     }
 
@@ -99,6 +104,7 @@ public class ReportService {
         r.setUpdatedAt(LocalDateTime.now());
         Report saved = reportRepository.save(r);
         eventPublisher.publishStatusChanged(saved, estadoPrevio);
+        kafkaProducer.publishStatusChanged(saved, estadoPrevio);
         return toDto(saved);
     }
 
@@ -117,6 +123,7 @@ public class ReportService {
         r.setUpdatedAt(LocalDateTime.now());
         Report saved = reportRepository.save(r);
         eventPublisher.publishStatusChanged(saved, estadoPrevio);
+        kafkaProducer.publishStatusChanged(saved, estadoPrevio);
     }
     private Report findOrThrow(Long id) {
         return reportRepository.findById(id)

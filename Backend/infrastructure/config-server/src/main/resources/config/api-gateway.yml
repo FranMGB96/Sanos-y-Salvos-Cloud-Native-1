@@ -41,6 +41,14 @@ spring:
           filters:
             - StripPrefix=1
 
+        # Evaluación 3: estadísticas y alertas en tiempo real (Kafka Streams)
+        - id: analytics-service
+          uri: lb://analytics-service
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - StripPrefix=1
+
         - id: bff-service
           uri: lb://bff-service
           predicates:

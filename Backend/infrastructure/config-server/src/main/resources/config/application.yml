@@ -17,6 +17,49 @@ spring:
         prefetch: 1                   # un mensaje a la vez por consumidor
         missing-queues-fatal: false   # no falla si la cola aún no existe
 
+  # ── KAFKA (Evaluación 3) ──────────────────────────────────
+  # Kafka se suma a RabbitMQ, no lo reemplaza: RabbitMQ sigue con las tareas
+  # puntuales (notificación, ticket, auditoría) y Kafka guarda el flujo de
+  # eventos para analizarlo en tiempo real.
+  kafka:
+    # Los 3 brokers: si uno se cae, el cliente sigue con los otros dos
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092,localhost:9093,localhost:9094}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all                 # el broker confirma cuando el mensaje está en las réplicas sincronizadas
+      retries: 3
+      properties:
+        enable.idempotence: true          # evita duplicados si el productor reintenta
+        linger.ms: 5                      # espera 5 ms para juntar mensajes en un lote
+        max.block.ms: 3000                # si Kafka está caído, falla rápido y no cuelga la API
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 15000
+        spring.json.add.type.headers: false   # JSON limpio, sin el nombre de la clase Java
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false           # el offset lo confirma Spring cuando el mensaje se procesó bien
+      # Solo lee mensajes de transacciones confirmadas. analytics-service escribe las alertas con
+      # exactly-once (transacciones), así que un consumidor nunca ve una alerta de una transacción cancelada.
+      isolation-level: read_committed
+      # ErrorHandlingDeserializer: si llega un JSON roto no se cae el consumidor,
+      # el error pasa al error handler y el mensaje termina en el DLT
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "com.sanosysalvos.*"
+        spring.json.use.type.headers: false
+        max.poll.records: 50
+    listener:
+      ack-mode: record                    # confirma mensaje por mensaje
+
+# El correlationId del evento aparece en cada línea de log del consumidor
+logging:
+  pattern:
+    level: "%5p [%X{correlationId:-}]"
+
 sanosysalvos:
   messaging:
     exchanges:
@@ -47,3 +90,41 @@ sanosysalvos:
     # el consumidor simula un fallo temporal (sirve para mostrar reintentos -> DLQ)
     demo:
       failure-marker: "[FALLO-TEMPORAL]"
+
+  # ── KAFKA (Evaluación 3): nombres de topics, configuración por flujo y reglas ──
+  kafka:
+    enabled: ${KAFKA_ENABLED:true}
+    topics:
+      report-events: sys.reports.events   # CU1: todos los eventos de reportes
+      alerts: sys.reports.alerts          # CU2: alertas por zona
+      dlt-suffix: .DLT                    # Dead Letter Topics: <topic>.DLT
+      # Cada flujo tiene su propia configuración (lo pide la pauta)
+      config:
+        report-events:
+          partitions: 3
+          replicas: 3
+          retention-ms: 604800000         # 7 días: historial que se puede volver a leer
+          cleanup-policy: delete
+          min-insync-replicas: 2
+        alerts:
+          partitions: 3
+          replicas: 3
+          retention-ms: 86400000          # 24 horas: una alerta vieja ya no sirve
+          cleanup-policy: delete
+          min-insync-replicas: 2
+        dead-letter:
+          partitions: 3
+          replicas: 3
+          retention-ms: 1209600000        # 14 días: tiempo para revisar qué falló
+          cleanup-policy: delete
+          min-insync-replicas: 2
+    # Reintentos de los consumidores antes de mandar el mensaje al DLT
+    retry:
+      max-retries: 2          # 1 intento + 2 reintentos
+      initial-interval-ms: 1000
+      multiplier: 2.0         # 1 s, luego 2 s
+    # Regla de las alertas por zona (CU2)
+    alertas:
+      umbral-media: 3         # 3 o 4 perdidos en la misma zona y hora -> MEDIA
+      umbral-alta: 5          # 5 o más -> ALTA
+      ventana-minutos: 60

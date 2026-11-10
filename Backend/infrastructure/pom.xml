@@ -15,7 +15,7 @@
     <artifactId>infrastructure</artifactId>
     <packaging>pom</packaging>
     <name>Infrastructure</name>
-    <description>Módulos de infraestructura: Eureka, Config Server, API Gateway, BFF</description>
+    <description>Módulos de infraestructura: Eureka, Config Server, API Gateway, BFF y administradores de RabbitMQ y Kafka</description>
 
     <!-- Sub-módulos de infraestructura -->
     <modules>
@@ -25,5 +25,6 @@
         <module>bff-service</module>
         <module>springboot-admin</module>
         <module>rabbitmq-admin-service</module>
+        <module>kafka-admin-service</module>
     </modules>
 </project>

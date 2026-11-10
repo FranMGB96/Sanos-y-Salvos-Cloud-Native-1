@@ -2,6 +2,8 @@ package com.sanosysalvos.reportservice;
 
 import com.sanosysalvos.reportservice.dto.ReportDto;
 import com.sanosysalvos.reportservice.exception.ResourceNotFoundException;
+import com.sanosysalvos.reportservice.messaging.kafka.KafkaReportEventProducer;
+import com.sanosysalvos.reportservice.messaging.publisher.ReportEventPublisher;
 import com.sanosysalvos.reportservice.model.Report;
 import com.sanosysalvos.reportservice.repository.ReportRepository;
 import com.sanosysalvos.reportservice.service.ReportService;
@@ -12,11 +14,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ReportServiceTest {
     @Mock private ReportRepository reportRepository;
+    @Mock private ReportEventPublisher eventPublisher;      // RabbitMQ
+    @Mock private KafkaReportEventProducer kafkaProducer;   // Kafka
     @InjectMocks private ReportService reportService;
 
     @Test void createReport_datosValidos_retornaReporte() {
@@ -25,6 +30,8 @@ class ReportServiceTest {
         when(reportRepository.save(any())).thenReturn(saved);
         ReportDto result = reportService.createReport(dto);
         assertNotNull(result); assertEquals("PERDIDO", result.getTipo()); assertEquals("ACTIVO", result.getEstado());
+        // Además de RabbitMQ, el reporte nuevo se publica en Kafka
+        verify(kafkaProducer).publishReportCreated(saved);
     }
 
     @Test void getReportById_noExiste_lanzaExcepcion() {
@@ -37,6 +44,8 @@ class ReportServiceTest {
         when(reportRepository.findById(1L)).thenReturn(Optional.of(r));
         when(reportRepository.save(any())).thenReturn(r);
         ReportDto result = reportService.updateEstado(1L, "RESUELTO", 1L, "OWNER");
+        assertEquals("RESUELTO", result.getEstado());
+        verify(kafkaProducer).publishStatusChanged(any(Report.class), eq(Report.EstadoReporte.ACTIVO));
     }
 
     @Test void getByTipo_retornaFiltrados() {

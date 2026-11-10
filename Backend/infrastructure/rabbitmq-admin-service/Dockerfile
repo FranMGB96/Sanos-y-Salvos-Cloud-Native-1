@@ -16,6 +16,8 @@ COPY infrastructure/api-gateway/pom.xml      ./infrastructure/api-gateway/pom.xm
 COPY infrastructure/bff-service/pom.xml      ./infrastructure/bff-service/pom.xml
 COPY infrastructure/springboot-admin/pom.xml ./infrastructure/springboot-admin/pom.xml
 COPY infrastructure/rabbitmq-admin-service/pom.xml ./infrastructure/rabbitmq-admin-service/pom.xml
+COPY businessdomain/analytics-service/pom.xml ./businessdomain/analytics-service/pom.xml
+COPY infrastructure/kafka-admin-service/pom.xml ./infrastructure/kafka-admin-service/pom.xml
 RUN mvn dependency:go-offline -pl infrastructure/rabbitmq-admin-service -am -B
 # Copiar solo el código fuente del servicio que vamos a compilar
 COPY infrastructure/rabbitmq-admin-service/src ./infrastructure/rabbitmq-admin-service/src

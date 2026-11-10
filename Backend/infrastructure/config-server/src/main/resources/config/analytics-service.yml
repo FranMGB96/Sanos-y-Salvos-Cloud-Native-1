@@ -1,0 +1,27 @@
+# Configuración de Kafka Streams del analytics-service (Evaluación 3)
+spring:
+  kafka:
+    streams:
+      # application-id = consumer group de Kafka Streams. También es el prefijo de sus topics internos.
+      application-id: analytics-group
+      state-dir: /tmp/kafka-streams
+      properties:
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        # Exactly-once: cada evento se cuenta una sola vez, aunque haya fallos o reinicios
+        processing.guarantee: exactly_once_v2
+        # Los topics internos (changelog y reparticionado) también con 3 réplicas
+        replication.factor: 3
+        # 3 hilos: uno por partición del topic de entrada
+        num.stream.threads: 3
+        # Para la demo: publicar los cambios casi al instante
+        commit.interval.ms: 1000
+        statestore.cache.max.bytes: 0
+        # Un mensaje con JSON roto se registra y se salta, en vez de detener todo el procesamiento
+        default.deserialization.exception.handler: org.apache.kafka.streams.errors.LogAndContinueExceptionHandler
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
